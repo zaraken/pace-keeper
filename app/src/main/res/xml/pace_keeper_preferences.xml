@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <SwitchPreference
+        android:key="@string/setting_key_active"
+        android:persistent="true"
+        android:defaultValue="false">
+    </SwitchPreference>
+
+    <EditTextPreference
+        android:defaultValue="0.0"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:numeric="decimal"
+        android:title="Best Pace (steps/sec)"
+        android:dialogMessage="Updated automatically with best recorded pace. \n Edit to reset."
+        android:key="@string/setting_key_best_pace"/>
+
+    <CheckBoxPreference
+        android:key="@string/setting_key_active_step_freq"
+        android:persistent="true"
+        android:defaultValue="false"
+        android:title="Monitor pace" />
+    <EditTextPreference
+        android:key="@string/setting_key_min_step_freq"
+        android:title="Min Pace (steps/sec)"
+        android:summary="..."
+        android:dialogTitle="Enter Min Pace (steps/sec)"
+        android:dialogMessage="0 for disabled"
+        android:dependency="@string/setting_key_active_step_freq"
+        android:shouldDisableView="true"
+        android:numeric="decimal"
+        android:persistent="true"
+        android:defaultValue="2.0"/>
+    <EditTextPreference
+        android:key="@string/setting_key_max_step_freq"
+        android:title="Max Pace (steps/sec)"
+        android:summary="..."
+        android:dialogTitle="Enter Max Pace (steps/sec)"
+        android:dialogMessage="0 for disabled"
+        android:dependency="@string/setting_key_active_step_freq"
+        android:shouldDisableView="true"
+        android:numeric="decimal"
+        android:persistent="true"
+        android:defaultValue="2.0"/>
+
+    <CheckBoxPreference
+        android:key="@string/setting_key_active_step_size"
+        android:persistent="true"
+        android:defaultValue="false"
+        android:title="Monitor step size" />
+    <EditTextPreference
+
+        android:key="@string/setting_key_min_step_size"
+        android:title="Min Step Size"
+        android:summary="%s"
+        android:dialogTitle="Enter Min Step Size"
+        android:dialogMessage="0 for disabled"
+        android:dependency="@string/setting_key_active_step_size"
+        android:shouldDisableView="true"
+        android:numeric="decimal"
+        android:persistent="true"
+        android:defaultValue="1.2"/>
+    <EditTextPreference
+        android:key="@string/setting_key_max_step_size"
+        android:title="Max Step Size"
+        android:summary="..."
+        android:dialogTitle="Enter Max Step Size"
+        android:dialogMessage="0 for disabled"
+        android:dependency="@string/setting_key_active_step_size"
+        android:shouldDisableView="true"
+        android:numeric="decimal"
+        android:persistent="true"
+        android:defaultValue="1.2"/>
+</PreferenceScreen>

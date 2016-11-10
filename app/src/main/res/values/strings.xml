@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">PaceKeeper</string>
+    <string name="setting_key_active">active</string>
+    <string name="setting_key_active_step_freq">active_step_freq</string>
+    <string name="setting_key_active_step_size">active_step_size</string>
+    <string name="setting_key_min_step_freq">min_step_freq</string>
+    <string name="setting_key_max_step_freq">max_step_freq</string>
+    <string name="setting_key_min_step_size">min_step_size</string>
+    <string name="setting_key_max_step_size">max_step_size</string>
+    <string name="setting_key_best_pace">best_pace</string>
+
+</resources>

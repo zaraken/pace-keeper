@@ -16,47 +16,36 @@ import android.os.Vibrator
 import android.preference.PreferenceManager
 import android.util.Log
 
-class PaceKeeperService : Service(), SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
+class PaceKeeperService : Service(), IPaceKeeperService, SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     companion object {
-        val TAG = "PaceKeeperService"
-        val REFRESH_PERIOD: Long = 60 * 1000 // wakeup the device every 60 seconds
-        val STANDING_THRESHOLD = 1F
+        val TAG = PaceKeeperService::class.java.simpleName as String
     }
 
     val sensorManager by lazy { getSystemService(Context.SENSOR_SERVICE) as SensorManager }
     val stepCounterSensor by lazy { sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) as Sensor }
     val sharedPreferences by lazy { PreferenceManager.getDefaultSharedPreferences(this) as SharedPreferences }
-    val vibrator by lazy { getSystemService(Context.VIBRATOR_SERVICE) as Vibrator } // TODO could be null
+    val vibrator by lazy { getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
     val alarmManager by lazy { applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
 
     var registered: Boolean = false // flag to avoid registering for sensor data more than once
-    var listening = false
 
-    var timestampDequeue: MutableList<Pair<Long, Float>> = arrayListOf() // timestamp, count
-    var startTimeOffset: Long = 0
-    var minPace: Float = 0F
-    var bestPace: Float = 0F
-    var buzStartTimestamp: Long = 0
+    lateinit var controller: PaceKeeperServiceController
 
     // Preferences ---------------
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         Log.d(TAG, "onSharedPreferenceChanged " + key)
+
         when (key) {
             getString(R.string.setting_key_active) -> {
-                listening = sharedPreferences?.getBoolean(key, false) ?: false
-                configAlarmManager(listening)
+                controller.onPreferenceChnaged(R.string.setting_key_active, sharedPreferences?.getBoolean(key, false))
             }
             getString(R.string.setting_key_min_step_freq) -> {
-                minPace = (sharedPreferences
-                        ?.getString(getString(R.string.setting_key_min_step_freq), "0.0")
-                        ?: "0.0").toFloat()
-
+                controller.onPreferenceChnaged(R.string.setting_key_min_step_freq, sharedPreferences
+                        ?.getString(key, "0.0"))
             }
             getString(R.string.setting_key_best_pace) -> {
-                bestPace = (sharedPreferences
-                        ?.getString(getString(R.string.setting_key_best_pace), "0.0")
-                        ?: "0.0").toFloat()
+                controller.onPreferenceChnaged(R.string.setting_key_best_pace, sharedPreferences?.getString(key, "0.0"))
             }
         }
     }
@@ -66,77 +55,29 @@ class PaceKeeperService : Service(), SensorEventListener, SharedPreferences.OnSh
     } // do nothing
 
     override fun onSensorChanged(event: SensorEvent?) {
-
-        val currMills = System.currentTimeMillis()
-        val eventDeliveryDelay = currMills - (event?.timestamp ?: 0) / 1000000 - startTimeOffset
-        if (startTimeOffset == 0L) startTimeOffset = eventDeliveryDelay
-
-        val currentPace = getNewPace(event?.timestamp ?: 0, event?.values?.get(0) ?: -1F)
-
-        Log.d(TAG, "onSensorChanged "
-                + " values=" + event?.values?.size
-                + " first=" + (event?.values?.get(0) ?: "")
-                + " delivery_delay=" + eventDeliveryDelay
-                //+ " currMillis=" + currMills
-                //+ " timestamp=" + (event?.timestamp ?: 0)
-                + " pace=" + currentPace)
-
-        if (listening // enabled in preferences
-                && eventDeliveryDelay < 2000 // delivered event is current enough
-                && currentPace < minPace // person/device moving with less than specified preference
-                && currentPace > STANDING_THRESHOLD // but not staying
-                && !buzzing()) {
-            buzz()
-        }
+        controller.onStep(event?.timestamp, event?.values?.get(0))
     }
 
-    // this +
-
-    fun buzz() {
-        if (!buzzing()) {
-            val stepPeriod: Long = (1000 * 1 / minPace).toLong() // period in millisec
-            val buzzLength: Long = 200 // in millisec
-            // buzz 3 times
-            val pattern = longArrayOf(0, buzzLength, (stepPeriod + buzzLength), buzzLength, (stepPeriod + buzzLength), buzzLength)
-            vibrator.vibrate(pattern, -1) //?: Log.d(TAG, "vibrator is NULL")
-            buzStartTimestamp = System.currentTimeMillis()
-        }
-    }
-
-    fun buzzing(): Boolean {
-        val buzzPeriod: Long = 6 * (1000 * 1 / minPace).toLong() // period in millisec
-        val timeBetweenBuzz = buzzPeriod * 10 // don't want it buzzing all the time
-        return if (System.currentTimeMillis() < buzStartTimestamp + timeBetweenBuzz) true else false
-    }
-
-    /**
-     * Add new stepcount info to a queue
-     * Calculate the pace based on the last 3 steps
-     *
-     * @param[timestamp]
-     * @param[stepcount]
-     * @return pace in steps per second
-     */
-    fun getNewPace(timestamp: Long, stepcount: Float): Float {
-        val NS2S = 1000000000.0f
-        if (timestamp != 0L && stepcount != -1F) {
-            timestampDequeue.add(Pair(timestamp, stepcount))
-            while (timestampDequeue.size > 3) {
-                timestampDequeue.removeAt(0)
-            }
-        }
-        val (stampfirst, countfirst) = timestampDequeue.first()
-        val (stamplast, countlast) = timestampDequeue.last()
-        val newPace: Float = if (stamplast - stampfirst == 0L) 0F else (countfirst - countlast) * NS2S / (stampfirst - stamplast)
-        if (newPace > bestPace) recordBestPace(newPace)
-        return newPace
-    }
-
-    fun recordBestPace(pace: Float) {
-        bestPace = pace
+    // IPaceKeeperService
+    override fun recordBestPace(pace: Float) {
         val editor = sharedPreferences.edit()
         editor.putString(getString(R.string.setting_key_best_pace), pace.toString())
         editor.apply()
+    }
+
+    override fun buzz(pattern: LongArray, repeat: Int){
+        //Log.d(TAG, "buzz $pattern $repeat")
+        vibrator.vibrate(pattern, repeat)
+    }
+
+    override fun configAlarmManager(listening: Boolean, startDelay: Long, refreshPeriod: Long) {
+        Log.d(TAG, "configAlarmManager")
+        val intent = Intent(applicationContext, PaceKeeperService::class.java)
+        val pendingIntent = PendingIntent.getService(applicationContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+        alarmManager.cancel(pendingIntent)
+        if (listening) {
+            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + startDelay, refreshPeriod, pendingIntent)
+        }
     }
 
     // Service override  ----------------------
@@ -150,10 +91,12 @@ class PaceKeeperService : Service(), SensorEventListener, SharedPreferences.OnSh
             Log.d(TAG, "Step Counter not supported!")
             stopSelf()
         } else {
+            controller = PaceKeeperServiceController()
+            controller.bindService(this)
+
             registerForPreferences()
             registerForStepCounter()
             initFromPreferences()
-            configAlarmManager(listening)
         }
     }
 
@@ -165,6 +108,7 @@ class PaceKeeperService : Service(), SensorEventListener, SharedPreferences.OnSh
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy")
+        controller.unbindService(this)
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
         sensorManager.unregisterListener(this, stepCounterSensor)
     }
@@ -181,19 +125,9 @@ class PaceKeeperService : Service(), SensorEventListener, SharedPreferences.OnSh
     }
 
     fun initFromPreferences() {
-        listening = sharedPreferences.getBoolean(getString(R.string.setting_key_active), false)
-        minPace = sharedPreferences.getString(getString(R.string.setting_key_min_step_freq), "0.0").toFloat()
-        bestPace = sharedPreferences.getString(getString(R.string.setting_key_best_pace), "0.0").toFloat()
-    }
-
-    fun configAlarmManager(on_off: Boolean) {
-        Log.d(TAG, "configAlarmManager")
-        val intent = Intent(applicationContext, PaceKeeperService::class.java)
-        val pendingIntent = PendingIntent.getService(applicationContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-        alarmManager.cancel(pendingIntent)
-        if (on_off) {
-            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 30 * 1000, REFRESH_PERIOD, pendingIntent)
-        }
+        controller.onPreferenceChnaged(R.string.setting_key_active, sharedPreferences.getBoolean(getString(R.string.setting_key_active), false))
+        controller.onPreferenceChnaged(R.string.setting_key_min_step_freq, sharedPreferences.getString(getString(R.string.setting_key_min_step_freq), "0.0"))
+        controller.onPreferenceChnaged(R.string.setting_key_best_pace, sharedPreferences.getString(getString(R.string.setting_key_min_step_freq), "0.0"))
     }
 
     fun isSupportedStepCounter(): Boolean {

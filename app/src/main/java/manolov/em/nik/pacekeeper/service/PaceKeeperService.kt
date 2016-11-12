@@ -1,4 +1,4 @@
-package manolov.em.nik.pacekeeper
+package manolov.em.nik.pacekeeper.service
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.Vibrator
 import android.preference.PreferenceManager
 import android.util.Log
+import manolov.em.nik.pacekeeper.R
 
 class PaceKeeperService : Service(), IPaceKeeperService, SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
 

@@ -1,4 +1,4 @@
-package manolov.em.nik.pacekeeper
+package manolov.em.nik.pacekeeper.ui
 
 import android.app.Activity
 import android.content.Intent
@@ -6,6 +6,8 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.preference.*
 import android.util.Log
+import manolov.em.nik.pacekeeper.service.PaceKeeperService
+import manolov.em.nik.pacekeeper.R
 
 class MainActivity : Activity() {
 
@@ -29,7 +31,7 @@ class MainActivity : Activity() {
             super.onCreate(savedInstanceState)
             addPreferencesFromResource(R.xml.pace_keeper_preferences)
 
-            traversePreferences(preferenceScreen, {p: Preference->updateEditTextPreferenceSummary(p)})
+            traversePreferences(preferenceScreen, {p: Preference ->updateEditTextPreferenceSummary(p)})
             Log.d(TAG, "starting service")
             activity.startService(Intent(activity, PaceKeeperService::class.java))
         }
@@ -45,12 +47,12 @@ class MainActivity : Activity() {
         }
 
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences,
-                                      key: String) {
+                                               key: String) {
             Log.d(TAG, key)
             updateEditTextPreferenceSummary(findPreference(key))
         }
 
-        private fun traversePreferences(p: Preference, func: (p:Preference)->Unit) {
+        private fun traversePreferences(p: Preference, func: (p: Preference)->Unit) {
             when (p){
                 is PreferenceGroup -> {
                     for (i in 0 until p.preferenceCount) {

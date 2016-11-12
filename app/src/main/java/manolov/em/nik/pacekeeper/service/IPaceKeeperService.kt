@@ -1,4 +1,4 @@
-package manolov.em.nik.pacekeeper
+package manolov.em.nik.pacekeeper.service
 
 /**
  * Created by Nik on 2016-11-12.

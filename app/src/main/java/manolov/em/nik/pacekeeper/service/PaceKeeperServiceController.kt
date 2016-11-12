@@ -1,7 +1,8 @@
-package manolov.em.nik.pacekeeper
+package manolov.em.nik.pacekeeper.service
 
 import android.os.SystemClock
 import android.util.Log
+import manolov.em.nik.pacekeeper.R
 
 /**
  * Created by Nik on 2016-11-12.

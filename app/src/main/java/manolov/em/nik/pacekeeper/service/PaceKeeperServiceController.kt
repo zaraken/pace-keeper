@@ -132,6 +132,7 @@ class PaceKeeperServiceController{
                             , (stepPeriod + buzzLength)
                             , buzzLength)
             service?.buzz(pattern, -1) //?: Log.d(TAG, "vibrator is NULL")
+            // TODO: test synchronization between buzz and ring. Phone's vibration broken ...
             service?.ring(0, 0)
 
             buzStartTimestamp = System.currentTimeMillis()

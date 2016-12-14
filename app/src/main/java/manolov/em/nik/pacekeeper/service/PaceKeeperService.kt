@@ -11,6 +11,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.os.IBinder
 import android.os.Vibrator
 import android.preference.PreferenceManager
@@ -28,6 +30,21 @@ class PaceKeeperService : Service(), IPaceKeeperService, SensorEventListener, Sh
     val sharedPreferences by lazy { PreferenceManager.getDefaultSharedPreferences(this) as SharedPreferences }
     val vibrator by lazy { getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
     val alarmManager by lazy { applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
+
+    // TODO: ? support down to sdk 16 with constructor instead of builder
+    val soundPool by lazy{
+            SoundPool.Builder()
+                    .setAudioAttributes(AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build())
+                    .setMaxStreams(1)
+                    .build().apply{
+                setOnLoadCompleteListener{sPool, sampleID, status -> soundLoaded = true }
+            }
+        }
+    var soundLoaded = false
+    var soundID = -1
 
     var registered: Boolean = false // flag to avoid registering for sensor data more than once
 
@@ -71,6 +88,14 @@ class PaceKeeperService : Service(), IPaceKeeperService, SensorEventListener, Sh
         vibrator.vibrate(pattern, repeat)
     }
 
+    override fun ring(repeat: Int, interval: Int){
+        if (soundLoaded) {
+            // TODO: respect volume settings
+            // TODO: implement repeat
+            soundPool.play(soundID, 0.1f, 0.1f, 1, 0, 1f)
+        }
+    }
+
     override fun configAlarmManager(listening: Boolean, startDelay: Long, refreshPeriod: Long) {
         Log.d(TAG, "configAlarmManager")
         val intent = Intent(applicationContext, PaceKeeperService::class.java)
@@ -98,6 +123,8 @@ class PaceKeeperService : Service(), IPaceKeeperService, SensorEventListener, Sh
             registerForPreferences()
             registerForStepCounter()
             initFromPreferences()
+            // init sound
+            soundID = soundPool.load(this, R.raw.ring, 1)
         }
     }
 

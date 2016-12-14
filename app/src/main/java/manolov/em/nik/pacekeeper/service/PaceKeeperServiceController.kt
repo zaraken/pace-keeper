@@ -125,8 +125,15 @@ class PaceKeeperServiceController{
             val stepPeriod: Long = (1000 * 1 / minPace).toLong() // period in millis
             val buzzLength: Long = 200 // in millis
             // buzz 3 times
-            val pattern = longArrayOf(0, buzzLength, (stepPeriod + buzzLength), buzzLength, (stepPeriod + buzzLength), buzzLength)
+            val pattern = longArrayOf(0
+                            , buzzLength
+                            , (stepPeriod + buzzLength)
+                            , buzzLength
+                            , (stepPeriod + buzzLength)
+                            , buzzLength)
             service?.buzz(pattern, -1) //?: Log.d(TAG, "vibrator is NULL")
+            service?.ring(0, 0)
+
             buzStartTimestamp = System.currentTimeMillis()
         }
     }

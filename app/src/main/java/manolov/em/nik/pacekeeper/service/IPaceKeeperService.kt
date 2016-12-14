@@ -7,4 +7,5 @@ interface IPaceKeeperService {
     fun configAlarmManager(listening: Boolean, startDelay: Long, refreshPeriod: Long)
     fun recordBestPace(pace: Float)
     fun buzz(pattern: LongArray, repeat: Int)
+    fun ring(repeat: Int, interval: Int)
 }
